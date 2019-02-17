@@ -74,10 +74,17 @@ class BaseInterface(metaclass=InterfaceMeta):
     async def dispatch(self, command: str, message) -> list:
         if not self._dispatch_locked:
             if command == attendance_key:
-                cursor.execute('INSERT INTO attendance VALUES (?,?,?)', (
-                '%s#%s' % (message.author.name, message.author.discriminator), datetime.datetime.now(), effective_meeting_count))
-                conn.commit()
-                return await split_send_message(message.author, 'Thank you. Your attendance has been recorded.')
+                if cursor.execute('SELECT * FROM attendance WHERE symbol = (?,?)', (
+                         '%s#%s' % (message.author.name, message.author.discriminator), attendance_key )):
+                    return await split_send_message(message.author, 'You have already used this code.')
+                else:
+                     cursor.execute('INSERT INTO attendance VALUES (?,?,?)', (
+                         '%s#%s' % (message.author.name, message.author.discriminator), datetime.datetime.now(),
+                         effective_meeting_count))
+                     cursor.execute('INSERT INTO attendance VALUES (?,?)', (
+                         '%s#%s' % (message.author.name, message.author.discriminator), attendance_key ))
+                     conn.commit()
+                     return await split_send_message(message.author, 'Thank you. Your attendance has been recorded.')
             try:
                 command = command.split()
                 func = getattr(self, command[0])
